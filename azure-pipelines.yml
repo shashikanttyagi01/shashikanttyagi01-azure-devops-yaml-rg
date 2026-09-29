@@ -1,0 +1,46 @@
+trigger:
+- main
+
+pool:
+  name: My_testing_pool
+
+steps:
+
+- checkout: self
+
+- task: AzureCLI@2
+  displayName: "Login to Azure"
+  inputs:
+    azureSubscription: "test_sc"
+    scriptType: "ps"
+    scriptLocation: "inlineScript"
+    inlineScript: |
+      az account show
+
+- task: PowerShell@2
+  displayName: "Terraform Init"
+  inputs:
+    targetType: "inline"
+    script: |
+      terraform init
+
+- task: PowerShell@2
+  displayName: "Terraform Validate"
+  inputs:
+    targetType: "inline"
+    script: |
+      terraform validate
+
+- task: PowerShell@2
+  displayName: "Terraform Plan"
+  inputs:
+    targetType: "inline"
+    script: |
+      terraform plan
+
+- task: PowerShell@2
+  displayName: "Terraform Apply"
+  inputs:
+    targetType: "inline"
+    script: |
+      terraform apply -auto-approve
