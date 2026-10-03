@@ -11,7 +11,12 @@ provider "azurerm" {
   features {}
 }
 
-resource "azurerm_resource_group" "rg" {
-  name     = "RG-YAML-Lab"
+resource "azurerm_resource_group" "rg1" {
+  name     = "RG-YAML-Lab1"
+  location = "Central India"
+}
+
+resource "azurerm_resource_group" "rg2" {
+  name     = "RG-YAML-Lab2"
   location = "Central India"
 }
