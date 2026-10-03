@@ -21,7 +21,3 @@ resource "azurerm_resource_group" "rg2" {
   location = "Central India"
 }
 
-resource "azurerm_resource_group" "rg3" {
-  name     = "RG-YAML-Lab3"
-  location = "Central India"
-}
