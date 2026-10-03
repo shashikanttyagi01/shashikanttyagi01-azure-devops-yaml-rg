@@ -1,46 +1,252 @@
 trigger:
-- main
+  - main
 
 pool:
-  name: My_testing_pool
+  name: Terraform-Lab-Pool
 
-steps:
+stages:
 
-- checkout: self
+  # ==================================================
+  # STAGE 1 - TERRAFORM INIT
+  # ==================================================
 
-- task: AzureCLI@2
-  displayName: "Login to Azure"
-  inputs:
-    azureSubscription: "test_sc"
-    scriptType: "ps"
-    scriptLocation: "inlineScript"
-    inlineScript: |
-      az account show
+  - stage: Terraform_Init
+    displayName: 'Terraform Init'
 
-- task: PowerShell@2
-  displayName: "Terraform Init"
-  inputs:
-    targetType: "inline"
-    script: |
-      terraform init
+    jobs:
+      - job: Init
+        displayName: 'Terraform Init'
 
-- task: PowerShell@2
-  displayName: "Terraform Validate"
-  inputs:
-    targetType: "inline"
-    script: |
-      terraform validate
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Terraform Init'
+            inputs:
+              azureSubscription: 'ADO_Pipeline_yaml'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "======================================"
+                Write-Host "Starting Terraform Init"
+                Write-Host "======================================"
 
-- task: PowerShell@2
-  displayName: "Terraform Plan"
-  inputs:
-    targetType: "inline"
-    script: |
-      terraform plan
+                Write-Host "Current directory:"
+                Get-Location
 
-- task: PowerShell@2
-  displayName: "Terraform Apply"
-  inputs:
-    targetType: "inline"
-    script: |
-      terraform apply -auto-approve
+                Write-Host "Terraform version:"
+                terraform version
+
+                Write-Host "Running Terraform Init..."
+
+                terraform init
+
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Terraform Init failed"
+                  exit $LASTEXITCODE
+                }
+
+                Write-Host "Terraform Init completed successfully"
+
+
+  # ==================================================
+  # STAGE 2 - TERRAFORM VALIDATE
+  # ==================================================
+
+  - stage: Terraform_Validate
+    displayName: 'Terraform Validate'
+
+    dependsOn: Terraform_Init
+    condition: succeeded()
+
+    jobs:
+      - job: Validate
+        displayName: 'Terraform Validate'
+
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Terraform Validate'
+            inputs:
+              azureSubscription: 'ADO_Pipeline_yaml'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "======================================"
+                Write-Host "Starting Terraform Validate"
+                Write-Host "======================================"
+
+                Write-Host "Current directory:"
+                Get-Location
+
+                Write-Host "Running Terraform Init..."
+
+                terraform init
+
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Terraform Init failed"
+                  exit $LASTEXITCODE
+                }
+
+                Write-Host "Running Terraform Validate..."
+
+                terraform validate
+
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Terraform Validate failed"
+                  exit $LASTEXITCODE
+                }
+
+                Write-Host "Terraform Validate completed successfully"
+
+
+  # ==================================================
+  # STAGE 3 - TERRAFORM PLAN
+  # ==================================================
+
+  - stage: Terraform_Plan
+    displayName: 'Terraform Plan'
+
+    dependsOn: Terraform_Validate
+    condition: succeeded()
+
+    jobs:
+      - job: Plan
+        displayName: 'Terraform Plan'
+
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Terraform Plan'
+            inputs:
+              azureSubscription: 'ADO_Pipeline_yaml'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "======================================"
+                Write-Host "Starting Terraform Plan"
+                Write-Host "======================================"
+
+                Write-Host "Current directory:"
+                Get-Location
+
+                Write-Host "Terraform version:"
+                terraform version
+
+                Write-Host "Azure account:"
+                az account show --output table
+
+                Write-Host "Running Terraform Init..."
+
+                terraform init
+
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Terraform Init failed"
+                  exit $LASTEXITCODE
+                }
+
+                Write-Host "Running Terraform Plan..."
+
+                terraform plan
+
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Terraform Plan failed"
+                  exit $LASTEXITCODE
+                }
+
+                Write-Host "======================================"
+                Write-Host "Terraform Plan completed successfully"
+                Write-Host "======================================"
+
+
+  # ==================================================
+  # STAGE 4 - MANUAL APPROVAL
+  # ==================================================
+
+  - stage: Manual_Approval
+    displayName: 'Manual Approval'
+
+    dependsOn: Terraform_Plan
+    condition: succeeded()
+
+    jobs:
+      - job: Approval
+        displayName: 'Approve Terraform Apply'
+
+        pool: server
+
+        timeoutInMinutes: 15
+
+        steps:
+          - task: ManualValidation@1
+            displayName: 'Manual Approval Before Terraform Apply'
+
+            timeoutInMinutes: 10
+
+            inputs:
+              notifyUsers: |
+                shashi.devops91@gmail.com
+
+              instructions: |
+                Terraform Plan completed successfully.
+
+                Please review the Terraform Plan.
+
+                Approve this stage to continue
+                with Terraform Apply.
+
+              onTimeout: 'reject'
+
+
+  # ==================================================
+  # STAGE 5 - TERRAFORM APPLY
+  # ==================================================
+
+  - stage: Terraform_Apply
+    displayName: 'Terraform Apply'
+
+    dependsOn: Manual_Approval
+    condition: succeeded()
+
+    jobs:
+      - job: Apply
+        displayName: 'Terraform Apply'
+
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Terraform Apply'
+            inputs:
+              azureSubscription: 'ADO_Pipeline_yaml'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "======================================"
+                Write-Host "Starting Terraform Apply"
+                Write-Host "======================================"
+
+                Write-Host "Current directory:"
+                Get-Location
+
+                Write-Host "Terraform version:"
+                terraform version
+
+                Write-Host "Azure account:"
+                az account show --output table
+
+                Write-Host "Running Terraform Init..."
+
+                terraform init
+
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Terraform Init failed"
+                  exit $LASTEXITCODE
+                }
+
+                Write-Host "Running Terraform Apply..."
+
+                terraform apply -auto-approve
+
+                if ($LASTEXITCODE -ne 0) {
+                  Write-Host "Terraform Apply failed"
+                  exit $LASTEXITCODE
+                }
+
+                Write-Host "======================================"
+                Write-Host "Terraform Apply completed successfully"
+                Write-Host "======================================"
