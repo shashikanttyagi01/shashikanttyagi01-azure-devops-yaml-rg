@@ -12,12 +12,12 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "rg1" {
-  name     = "RG-YAML-Lab01"
+  name     = "RG-YAML-Lab1"
   location = "Central India"
 }
 
 resource "azurerm_resource_group" "rg2" {
-  name     = "RG-YAML-Lab02"
+  name     = "RG-YAML-Lab2"
   location = "Central India"
 }
 
